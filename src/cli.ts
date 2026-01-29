@@ -1,8 +1,8 @@
+import { confirm, input, select } from "@inquirer/prompts";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, isAbsolute, join, resolve } from "node:path";
-import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 
 type KeyType = "ed25519" | "rsa";
@@ -291,21 +291,20 @@ const resolveKeyPath = (sshDir: string, keyName: string): string => {
   return join(sshDir, sanitized);
 };
 
-const ensureUniqueKeyPath = async (
-  sshDir: string,
-  keyPath: string,
-  prompt: (question: string) => Promise<string>
-): Promise<string> => {
+const ensureUniqueKeyPath = async (sshDir: string, keyPath: string): Promise<string> => {
   let candidate = keyPath;
 
   while (existsSync(candidate) || existsSync(`${candidate}.pub`)) {
-    const answer = (await prompt(`Key already exists at ${candidate}. Overwrite? (y/N): `)).trim();
-    if (answer.toLowerCase() === "y" || answer.toLowerCase() === "yes") {
+    const overwrite = await confirm({
+      message: `Key already exists at ${candidate}. Overwrite?`,
+      default: false
+    });
+    if (overwrite) {
       return candidate;
     }
 
-    const nextName = (await prompt("Enter a different key name: ")).trim();
-    if (nextName.length === 0) {
+    const nextName = (await input({ message: "Enter a different key name" })).trim();
+    if (!nextName) {
       continue;
     }
     candidate = resolveKeyPath(sshDir, nextName);
@@ -314,47 +313,17 @@ const ensureUniqueKeyPath = async (
   return candidate;
 };
 
-const promptYesNo = async (
-  prompt: (question: string) => Promise<string>,
-  question: string,
-  defaultValue: boolean
-): Promise<boolean> => {
-  const suffix = defaultValue ? " [Y/n]" : " [y/N]";
-  const answer = (await prompt(`${question}${suffix}: `)).trim().toLowerCase();
+const promptYesNo = async (question: string, defaultValue: boolean): Promise<boolean> =>
+  confirm({ message: question, default: defaultValue });
 
-  if (answer.length === 0) {
-    return defaultValue;
-  }
+const promptInput = async (question: string, defaultValue?: string): Promise<string> =>
+  input({ message: question, default: defaultValue });
 
-  return answer === "y" || answer === "yes";
-};
-
-const promptInput = async (
-  prompt: (question: string) => Promise<string>,
-  question: string,
-  defaultValue?: string
-): Promise<string> => {
-  const suffix = defaultValue ? ` [${defaultValue}]` : "";
-  const answer = (await prompt(`${question}${suffix}: `)).trim();
-  return answer.length > 0 ? answer : defaultValue ?? "";
-};
-
-const selectFromList = async (
-  prompt: (question: string) => Promise<string>,
-  items: string[]
-): Promise<string> => {
-  items.forEach((item, index) => {
-    console.log(`  ${index + 1}) ${item}`);
+const selectFromList = async (message: string, items: string[]): Promise<string> =>
+  select({
+    message,
+    choices: items.map((item) => ({ name: item, value: item }))
   });
-
-  while (true) {
-    const answer = (await prompt(`Select a key [1-${items.length}]: `)).trim();
-    const choice = Number.parseInt(answer, 10);
-    if (!Number.isNaN(choice) && choice >= 1 && choice <= items.length) {
-      return items[choice - 1];
-    }
-  }
-};
 
 const generateKey = (keyPath: string, email: string, type: KeyType): boolean => {
   const argsList = ["-t", type, "-C", email, "-f", keyPath];
@@ -393,150 +362,139 @@ const main = async (): Promise<void> => {
     logWarn("This workflow is optimized for macOS.");
   }
 
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const ask = (question: string) => rl.question(question);
-
   const sshDir = join(homedir(), ".ssh");
   let selectedKeyPath: string | null = null;
 
-  try {
-    printStep(1, "Check for existing SSH keys");
-    const publicKeys = listPublicKeys(sshDir);
+  printStep(1, "Check for existing SSH keys");
+  const publicKeys = listPublicKeys(sshDir);
 
-    if (publicKeys.length > 0) {
-      const keyNames = publicKeys.map((keyPath) => basename(keyPath));
-      logInfo("Found existing public keys:");
-      printList(keyNames);
-      const reuse = await promptYesNo(ask, "Reuse an existing key", false);
+  if (publicKeys.length > 0) {
+    const keyNames = publicKeys.map((keyPath) => basename(keyPath));
+    logInfo("Found existing public keys:");
+    printList(keyNames);
+    const reuse = await promptYesNo("Reuse an existing key", false);
 
-      if (reuse) {
-        const selectedName = await selectFromList(ask, keyNames);
-        const publicPath = join(sshDir, selectedName);
-        const privatePath = publicPath.replace(/\.pub$/, "");
-        if (!existsSync(privatePath)) {
-          logWarn(`Private key not found at ${privatePath}.`);
-        } else {
-          selectedKeyPath = privatePath;
-          printStep(2, "Use existing SSH key");
-          logSuccess(`Using ${basename(privatePath)}`);
-        }
+    if (reuse) {
+      const selectedName = await selectFromList("Select a key", keyNames);
+      const publicPath = join(sshDir, selectedName);
+      const privatePath = publicPath.replace(/\.pub$/, "");
+      if (!existsSync(privatePath)) {
+        logWarn(`Private key not found at ${privatePath}.`);
+      } else {
+        selectedKeyPath = privatePath;
+        printStep(2, "Use existing SSH key");
+        logSuccess(`Using ${basename(privatePath)}`);
       }
-    } else {
-      logInfo("No existing public keys found in ~/.ssh.");
+    }
+  } else {
+    logInfo("No existing public keys found in ~/.ssh.");
+  }
+
+  if (!selectedKeyPath) {
+    printStep(2, "Generate a new SSH key pair");
+    ensureSshDir(sshDir);
+
+    const gitEmail = getGitEmail();
+    const email = options.email ?? (await promptInput("GitHub email", gitEmail ?? undefined));
+    if (!email) {
+      logError("Email is required to generate the key.");
+      process.exit(1);
     }
 
-    if (!selectedKeyPath) {
-      printStep(2, "Generate a new SSH key pair");
-      ensureSshDir(sshDir);
-
-      const gitEmail = getGitEmail();
-      const email = options.email ?? (await promptInput(ask, "GitHub email", gitEmail ?? undefined));
-      if (!email) {
-        logError("Email is required to generate the key.");
-        process.exit(1);
+    let keyType: KeyType = options.type ?? "ed25519";
+    if (!options.type) {
+      const typeInput = await promptInput("Key type (ed25519 or rsa)", "ed25519");
+      if (typeInput === "ed25519" || typeInput === "rsa") {
+        keyType = typeInput;
       }
+    }
 
-      let keyType: KeyType = options.type ?? "ed25519";
-      if (!options.type) {
-        const typeInput = await promptInput(ask, "Key type (ed25519 or rsa)", "ed25519");
-        if (typeInput === "ed25519" || typeInput === "rsa") {
-          keyType = typeInput;
-        }
-      }
+    const defaultKeyName = options.keyName ?? (keyType === "ed25519" ? "id_ed25519" : "id_rsa");
+    const keyNameInput = options.keyName ?? (await promptInput("Key name", defaultKeyName));
+    let keyPath = resolveKeyPath(sshDir, keyNameInput);
+    keyPath = await ensureUniqueKeyPath(sshDir, keyPath);
 
-      const defaultKeyName = options.keyName ?? (keyType === "ed25519" ? "id_ed25519" : "id_rsa");
-      const keyNameInput = options.keyName ?? (await promptInput(ask, "Key name", defaultKeyName));
-      let keyPath = resolveKeyPath(sshDir, keyNameInput);
-      keyPath = await ensureUniqueKeyPath(sshDir, keyPath, ask);
-
-      const created = generateKey(keyPath, email, keyType);
-      if (!created && keyType === "ed25519") {
-        const fallback = await promptYesNo(
-          ask,
-          "ed25519 failed. Try rsa 4096 instead",
-          true
-        );
-        if (fallback) {
-          const rsaCreated = generateKey(keyPath, email, "rsa");
-          if (!rsaCreated) {
-            logError("Failed to generate RSA key.");
-            process.exit(1);
-          }
-        } else {
+    const created = generateKey(keyPath, email, keyType);
+    if (!created && keyType === "ed25519") {
+      const fallback = await promptYesNo("ed25519 failed. Try rsa 4096 instead", true);
+      if (fallback) {
+        const rsaCreated = generateKey(keyPath, email, "rsa");
+        if (!rsaCreated) {
+          logError("Failed to generate RSA key.");
           process.exit(1);
         }
-      } else if (!created) {
-        logError("Failed to generate SSH key.");
+      } else {
         process.exit(1);
       }
-
-      selectedKeyPath = keyPath;
-      logSuccess(`Key ready: ${basename(keyPath)}`);
-    }
-
-    if (!selectedKeyPath) {
-      logError("No SSH key selected. Exiting.");
+    } else if (!created) {
+      logError("Failed to generate SSH key.");
       process.exit(1);
     }
 
-    const publicKeyPath = `${selectedKeyPath}.pub`;
-    if (!existsSync(publicKeyPath)) {
-      logError(`Public key not found at ${publicKeyPath}.`);
-      process.exit(1);
-    }
+    selectedKeyPath = keyPath;
+    logSuccess(`Key ready: ${basename(keyPath)}`);
+  }
 
-    printStep(3, "Start ssh-agent");
-    if (!options.skipAgent) {
-      const agentReady = startAgent();
-      if (!agentReady) {
-        logWarn("Continuing without ssh-agent.");
-      } else {
-        logSuccess("ssh-agent is running.");
-      }
-    } else {
-      logInfo("Skipped starting ssh-agent.");
-    }
+  if (!selectedKeyPath) {
+    logError("No SSH key selected. Exiting.");
+    process.exit(1);
+  }
 
-    printStep(4, "Add key to ssh-agent");
-    if (!options.skipAdd) {
-      const added = addKeyToAgent(selectedKeyPath);
-      if (!added) {
-        logWarn(`ssh-add failed. Try: ssh-add ${selectedKeyPath}`);
-      } else {
-        logSuccess("Key added to ssh-agent.");
-      }
-    } else {
-      logInfo("Skipped adding key to agent.");
-    }
+  const publicKeyPath = `${selectedKeyPath}.pub`;
+  if (!existsSync(publicKeyPath)) {
+    logError(`Public key not found at ${publicKeyPath}.`);
+    process.exit(1);
+  }
 
-    printStep(5, "Add the public key to GitHub");
-    const publicKey = readFileSync(publicKeyPath, "utf8");
-    if (!options.skipCopy) {
-      const copied = copyToClipboard(publicKey);
-      if (copied) {
-        logSuccess("Public key copied to clipboard.");
-      } else {
-        logWarn("Copy failed. The public key is printed below:");
-        console.log(publicKey.trim());
-      }
+  printStep(3, "Start ssh-agent");
+  if (!options.skipAgent) {
+    const agentReady = startAgent();
+    if (!agentReady) {
+      logWarn("Continuing without ssh-agent.");
     } else {
-      logInfo("Skipping clipboard copy. Public key:");
+      logSuccess("ssh-agent is running.");
+    }
+  } else {
+    logInfo("Skipped starting ssh-agent.");
+  }
+
+  printStep(4, "Add key to ssh-agent");
+  if (!options.skipAdd) {
+    const added = addKeyToAgent(selectedKeyPath);
+    if (!added) {
+      logWarn(`ssh-add failed. Try: ssh-add ${selectedKeyPath}`);
+    } else {
+      logSuccess("Key added to ssh-agent.");
+    }
+  } else {
+    logInfo("Skipped adding key to agent.");
+  }
+
+  printStep(5, "Add the public key to GitHub");
+  const publicKey = readFileSync(publicKeyPath, "utf8");
+  if (!options.skipCopy) {
+    const copied = copyToClipboard(publicKey);
+    if (copied) {
+      logSuccess("Public key copied to clipboard.");
+    } else {
+      logWarn("Copy failed. The public key is printed below:");
       console.log(publicKey.trim());
     }
+  } else {
+    logInfo("Skipping clipboard copy. Public key:");
+    console.log(publicKey.trim());
+  }
 
-    logInfo("Open https://github.com/settings/keys to add a new SSH key.");
+  logInfo("Open https://github.com/settings/keys to add a new SSH key.");
 
-    printStep(6, "Verify your SSH connection");
-    if (!options.skipVerify) {
-      const verify = await promptYesNo(ask, "Run 'ssh -T git@github.com' now", false);
-      if (verify) {
-        spawnSync("ssh", ["-T", "git@github.com"], { stdio: "inherit" });
-      }
-    } else {
-      logInfo("Skipped verification.");
+  printStep(6, "Verify your SSH connection");
+  if (!options.skipVerify) {
+    const verify = await promptYesNo("Run 'ssh -T git@github.com' now", false);
+    if (verify) {
+      spawnSync("ssh", ["-T", "git@github.com"], { stdio: "inherit" });
     }
-  } finally {
-    rl.close();
+  } else {
+    logInfo("Skipped verification.");
   }
 };
 
