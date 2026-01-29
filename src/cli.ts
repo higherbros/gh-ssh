@@ -2,7 +2,7 @@ import { confirm, input, select } from "@inquirer/prompts";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, isAbsolute, join, resolve } from "node:path";
+import { basename, isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 type KeyType = "ed25519" | "rsa";
@@ -285,12 +285,16 @@ const copyToClipboard = (text: string): boolean => {
 
 const resolveKeyPath = (sshDir: string, keyName: string): string => {
   const sanitized = keyName.endsWith(".pub") ? keyName.slice(0, -4) : keyName;
-  if (isAbsolute(sanitized)) {
-    return sanitized;
+  if (sanitized === "~") {
+    return homedir();
   }
 
-  if (sanitized.includes("/")) {
-    return resolve(sanitized);
+  if (sanitized.startsWith("~/")) {
+    return join(homedir(), sanitized.slice(2));
+  }
+
+  if (isAbsolute(sanitized)) {
+    return sanitized;
   }
 
   return join(sshDir, sanitized);
