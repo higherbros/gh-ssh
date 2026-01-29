@@ -8,7 +8,7 @@ const external = [
 
 export default defineConfig({
   build: {
-    target: "node18",
+    target: "node22",
     lib: {
       entry: "src/cli.ts",
       formats: ["es"],
