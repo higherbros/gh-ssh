@@ -354,6 +354,9 @@ const main = async (): Promise<void> => {
     if (publicKeys.length > 0) {
       const keyNames = publicKeys.map((keyPath) => basename(keyPath));
       console.log("Found existing public keys:");
+      keyNames.forEach((name) => {
+        console.log(`  - ${name}`);
+      });
       const reuse = await promptYesNo(ask, "Reuse an existing key", false);
 
       if (reuse) {
