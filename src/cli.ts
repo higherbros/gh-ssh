@@ -104,6 +104,7 @@ const defaultOptions: CliOptions = {
 const parseArgs = (argv: string[]): { options: CliOptions; unknown: string[] } => {
   const options: CliOptions = { ...defaultOptions };
   const unknown: string[] = [];
+  const hasValue = (value?: string): value is string => Boolean(value) && !value.startsWith("-");
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -117,7 +118,7 @@ const parseArgs = (argv: string[]): { options: CliOptions; unknown: string[] } =
         options.version = true;
         break;
       case "--email":
-        if (argv[i + 1]) {
+        if (hasValue(argv[i + 1])) {
           options.email = argv[i + 1];
           i += 1;
         } else {
@@ -126,6 +127,10 @@ const parseArgs = (argv: string[]): { options: CliOptions; unknown: string[] } =
         break;
       case "--type": {
         const value = argv[i + 1];
+        if (!hasValue(value)) {
+          unknown.push(arg);
+          break;
+        }
         if (value === "ed25519" || value === "rsa") {
           options.type = value;
           i += 1;
@@ -136,7 +141,7 @@ const parseArgs = (argv: string[]): { options: CliOptions; unknown: string[] } =
         break;
       }
       case "--key-name":
-        if (argv[i + 1]) {
+        if (hasValue(argv[i + 1])) {
           options.keyName = argv[i + 1];
           i += 1;
         } else {
