@@ -37,6 +37,59 @@ Options:
   --skip-verify        Skip ssh -T verification step
 `;
 
+const totalSteps = 6;
+
+const useColor =
+  Boolean(process.stdout.isTTY) && !process.env.NO_COLOR && process.env.TERM !== "dumb";
+
+const colorize = (code: string, text: string): string =>
+  useColor ? `\u001b[${code}m${text}\u001b[0m` : text;
+
+const styles = {
+  bold: (text: string) => colorize("1", text),
+  dim: (text: string) => colorize("2", text),
+  red: (text: string) => colorize("31", text),
+  green: (text: string) => colorize("32", text),
+  yellow: (text: string) => colorize("33", text),
+  cyan: (text: string) => colorize("36", text)
+};
+
+const tag = (label: string, style: (text: string) => string): string =>
+  style(`[${label}]`);
+
+const logInfo = (message: string): void => {
+  console.log(`${tag("INFO", styles.cyan)} ${message}`);
+};
+
+const logSuccess = (message: string): void => {
+  console.log(`${tag("OK", styles.green)} ${message}`);
+};
+
+const logWarn = (message: string): void => {
+  console.log(`${tag("WARN", styles.yellow)} ${message}`);
+};
+
+const logError = (message: string): void => {
+  console.error(`${tag("ERROR", styles.red)} ${message}`);
+};
+
+const printHeader = (): void => {
+  console.log(styles.bold("gh-ssh"));
+  console.log(styles.dim("GitHub SSH key setup"));
+  console.log(styles.dim("----------------------------------------"));
+};
+
+const printStep = (index: number, title: string): void => {
+  console.log("");
+  console.log(`${styles.cyan(`Step ${index}/${totalSteps}`)} ${styles.bold(title)}`);
+};
+
+const printList = (items: string[]): void => {
+  items.forEach((item) => {
+    console.log(`  - ${item}`);
+  });
+};
+
 const args = process.argv.slice(2);
 
 const defaultOptions: CliOptions = {
@@ -188,7 +241,7 @@ const startAgent = (): boolean => {
 
   const result = runCommand("ssh-agent", ["-s"]);
   if (!result.ok || !result.stdout) {
-    console.error("Failed to start ssh-agent. Run 'eval \"$(ssh-agent -s)\"' manually.");
+    logWarn("Failed to start ssh-agent. Run 'eval \"$(ssh-agent -s)\"' manually.");
     return false;
   }
 
@@ -214,7 +267,6 @@ const addKeyToAgent = (keyPath: string): boolean => {
 
 const copyToClipboard = (text: string): boolean => {
   if (process.platform !== "darwin") {
-    console.log(text);
     return false;
   }
 
@@ -318,7 +370,7 @@ const main = async (): Promise<void> => {
   const { options, unknown } = parseArgs(args);
 
   if (unknown.length > 0) {
-    console.error(`Unknown arguments: ${unknown.join(" ")}`);
+    logError(`Unknown arguments: ${unknown.join(" ")}`);
     console.log(helpText);
     process.exit(1);
   }
@@ -334,11 +386,11 @@ const main = async (): Promise<void> => {
     return;
   }
 
-  console.log("gh-ssh: GitHub SSH key setup");
-  console.log("This tool will guide you through each step.\n");
+  printHeader();
+  logInfo(`This tool will guide you through ${totalSteps} steps.`);
 
   if (process.platform !== "darwin") {
-    console.log("Note: This workflow is optimized for macOS.");
+    logWarn("This workflow is optimized for macOS.");
   }
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -348,15 +400,13 @@ const main = async (): Promise<void> => {
   let selectedKeyPath: string | null = null;
 
   try {
-    console.log("Step 1: Check for existing SSH keys");
+    printStep(1, "Check for existing SSH keys");
     const publicKeys = listPublicKeys(sshDir);
 
     if (publicKeys.length > 0) {
       const keyNames = publicKeys.map((keyPath) => basename(keyPath));
-      console.log("Found existing public keys:");
-      keyNames.forEach((name) => {
-        console.log(`  - ${name}`);
-      });
+      logInfo("Found existing public keys:");
+      printList(keyNames);
       const reuse = await promptYesNo(ask, "Reuse an existing key", false);
 
       if (reuse) {
@@ -364,23 +414,25 @@ const main = async (): Promise<void> => {
         const publicPath = join(sshDir, selectedName);
         const privatePath = publicPath.replace(/\.pub$/, "");
         if (!existsSync(privatePath)) {
-          console.log(`Private key not found at ${privatePath}.`);
+          logWarn(`Private key not found at ${privatePath}.`);
         } else {
           selectedKeyPath = privatePath;
+          printStep(2, "Use existing SSH key");
+          logSuccess(`Using ${basename(privatePath)}`);
         }
       }
     } else {
-      console.log("No existing public keys found in ~/.ssh.");
+      logInfo("No existing public keys found in ~/.ssh.");
     }
 
     if (!selectedKeyPath) {
-      console.log("\nStep 2: Generate a new SSH key pair");
+      printStep(2, "Generate a new SSH key pair");
       ensureSshDir(sshDir);
 
       const gitEmail = getGitEmail();
       const email = options.email ?? (await promptInput(ask, "GitHub email", gitEmail ?? undefined));
       if (!email) {
-        console.error("Email is required to generate the key.");
+        logError("Email is required to generate the key.");
         process.exit(1);
       }
 
@@ -407,76 +459,81 @@ const main = async (): Promise<void> => {
         if (fallback) {
           const rsaCreated = generateKey(keyPath, email, "rsa");
           if (!rsaCreated) {
-            console.error("Failed to generate RSA key.");
+            logError("Failed to generate RSA key.");
             process.exit(1);
           }
         } else {
           process.exit(1);
         }
       } else if (!created) {
-        console.error("Failed to generate SSH key.");
+        logError("Failed to generate SSH key.");
         process.exit(1);
       }
 
       selectedKeyPath = keyPath;
+      logSuccess(`Key ready: ${basename(keyPath)}`);
     }
 
     if (!selectedKeyPath) {
-      console.error("No SSH key selected. Exiting.");
+      logError("No SSH key selected. Exiting.");
       process.exit(1);
     }
 
     const publicKeyPath = `${selectedKeyPath}.pub`;
     if (!existsSync(publicKeyPath)) {
-      console.error(`Public key not found at ${publicKeyPath}.`);
+      logError(`Public key not found at ${publicKeyPath}.`);
       process.exit(1);
     }
 
-    console.log("\nStep 3: Start ssh-agent");
+    printStep(3, "Start ssh-agent");
     if (!options.skipAgent) {
       const agentReady = startAgent();
       if (!agentReady) {
-        console.log("Continuing without ssh-agent.");
+        logWarn("Continuing without ssh-agent.");
+      } else {
+        logSuccess("ssh-agent is running.");
       }
     } else {
-      console.log("Skipped starting ssh-agent.");
+      logInfo("Skipped starting ssh-agent.");
     }
 
-    console.log("\nStep 4: Add key to ssh-agent");
+    printStep(4, "Add key to ssh-agent");
     if (!options.skipAdd) {
       const added = addKeyToAgent(selectedKeyPath);
       if (!added) {
-        console.log(`ssh-add failed. Try: ssh-add ${selectedKeyPath}`);
+        logWarn(`ssh-add failed. Try: ssh-add ${selectedKeyPath}`);
+      } else {
+        logSuccess("Key added to ssh-agent.");
       }
     } else {
-      console.log("Skipped adding key to agent.");
+      logInfo("Skipped adding key to agent.");
     }
 
-    console.log("\nStep 5: Add the public key to GitHub");
+    printStep(5, "Add the public key to GitHub");
     const publicKey = readFileSync(publicKeyPath, "utf8");
     if (!options.skipCopy) {
       const copied = copyToClipboard(publicKey);
       if (copied) {
-        console.log("Public key copied to clipboard.");
+        logSuccess("Public key copied to clipboard.");
       } else {
-        console.log("Copy failed. The public key is printed below:");
+        logWarn("Copy failed. The public key is printed below:");
         console.log(publicKey.trim());
       }
     } else {
-      console.log("Skipping clipboard copy. Public key:");
+      logInfo("Skipping clipboard copy. Public key:");
       console.log(publicKey.trim());
     }
 
-    console.log("Open https://github.com/settings/keys and add a new SSH key.");
+    logInfo("Open https://github.com/settings/keys to add a new SSH key.");
 
-    console.log("\nStep 6: Verify your SSH connection");
+    printStep(6, "Verify your SSH connection");
     if (!options.skipVerify) {
       const verify = await promptYesNo(ask, "Run 'ssh -T git@github.com' now", false);
       if (verify) {
         spawnSync("ssh", ["-T", "git@github.com"], { stdio: "inherit" });
       }
     } else {
-      console.log("Skipped verification.");
+      logInfo("Skipped verification.");
     }
   } finally {
     rl.close();
@@ -484,6 +541,7 @@ const main = async (): Promise<void> => {
 };
 
 main().catch((error) => {
-  console.error("Unexpected error:", error instanceof Error ? error.message : error);
+  const message = error instanceof Error ? error.message : String(error);
+  logError(`Unexpected error: ${message}`);
   process.exit(1);
 });
