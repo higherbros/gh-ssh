@@ -15,8 +15,10 @@
   "scripts": {
     "dev": "tsx src/cli.ts",
     "build": "vite build",
+    "postbuild": "node -e \"require('node:fs').chmodSync('dist/cli.js', 0o755)\"",
     "typecheck": "tsc --noEmit",
-    "start": "node dist/cli.js"
+    "start": "node dist/cli.js",
+    "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": ">=22.0.0"
