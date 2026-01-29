@@ -2,7 +2,7 @@ import { confirm, input, select } from "@inquirer/prompts";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, isAbsolute, join } from "node:path";
+import { basename, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 type KeyType = "ed25519" | "rsa";
@@ -54,39 +54,58 @@ const styles = {
   cyan: (text: string) => colorize("36", text)
 };
 
+const emoji = {
+  header: "🚀",
+  subtitle: "🔐",
+  info: "💡",
+  success: "🎉",
+  warn: "⚠️",
+  error: "💥",
+  step: "🧭",
+  list: "🔹",
+  step1: "🔎",
+  step2: "🔐",
+  step3: "🧰",
+  step4: "➕",
+  step5: "📋",
+  step6: "✅"
+};
+
 const tag = (label: string, style: (text: string) => string): string =>
   style(`[${label}]`);
 
 const logInfo = (message: string): void => {
-  console.log(`${tag("INFO", styles.cyan)} ${message}`);
+  console.log(`${emoji.info} ${tag("INFO", styles.cyan)} ${message}`);
 };
 
 const logSuccess = (message: string): void => {
-  console.log(`${tag("OK", styles.green)} ${message}`);
+  console.log(`${emoji.success} ${tag("OK", styles.green)} ${message}`);
 };
 
 const logWarn = (message: string): void => {
-  console.log(`${tag("WARN", styles.yellow)} ${message}`);
+  console.log(`${emoji.warn} ${tag("WARN", styles.yellow)} ${message}`);
 };
 
 const logError = (message: string): void => {
-  console.error(`${tag("ERROR", styles.red)} ${message}`);
+  console.error(`${emoji.error} ${tag("ERROR", styles.red)} ${message}`);
 };
 
 const printHeader = (): void => {
-  console.log(styles.bold("gh-ssh"));
-  console.log(styles.dim("GitHub SSH key setup"));
+  console.log(styles.bold(`${emoji.header} gh-ssh`));
+  console.log(styles.dim(`${emoji.subtitle} GitHub SSH key setup`));
   console.log(styles.dim("----------------------------------------"));
 };
 
-const printStep = (index: number, title: string): void => {
+const printStep = (index: number, title: string, icon = emoji.step): void => {
   console.log("");
-  console.log(`${styles.cyan(`Step ${index}/${totalSteps}`)} ${styles.bold(title)}`);
+  console.log(
+    `${icon} ${styles.cyan(`Step ${index}/${totalSteps}`)} ${styles.bold(title)}`
+  );
 };
 
 const printList = (items: string[]): void => {
   items.forEach((item) => {
-    console.log(`  - ${item}`);
+    console.log(`  ${emoji.list} ${item}`);
   });
 };
 
@@ -104,7 +123,8 @@ const defaultOptions: CliOptions = {
 const parseArgs = (argv: string[]): { options: CliOptions; unknown: string[] } => {
   const options: CliOptions = { ...defaultOptions };
   const unknown: string[] = [];
-  const hasValue = (value?: string): value is string => Boolean(value) && !value.startsWith("-");
+  const hasValue = (value?: string): value is string =>
+    typeof value === "string" && value.length > 0 && !value.startsWith("-");
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -374,7 +394,7 @@ const main = async (): Promise<void> => {
   const sshDir = join(homedir(), ".ssh");
   let selectedKeyPath: string | null = null;
 
-  printStep(1, "Check for existing SSH keys");
+  printStep(1, "Check for existing SSH keys", emoji.step1);
   const publicKeys = listPublicKeys(sshDir);
 
   if (publicKeys.length > 0) {
@@ -391,7 +411,7 @@ const main = async (): Promise<void> => {
         logWarn(`Private key not found at ${privatePath}.`);
       } else {
         selectedKeyPath = privatePath;
-        printStep(2, "Use existing SSH key");
+        printStep(2, "Use existing SSH key", emoji.step2);
         logSuccess(`Using ${basename(privatePath)}`);
       }
     }
@@ -400,7 +420,7 @@ const main = async (): Promise<void> => {
   }
 
   if (!selectedKeyPath) {
-    printStep(2, "Generate a new SSH key pair");
+    printStep(2, "Generate a new SSH key pair", emoji.step2);
     ensureSshDir(sshDir);
 
     const gitEmail = getGitEmail();
@@ -455,7 +475,7 @@ const main = async (): Promise<void> => {
     process.exit(1);
   }
 
-  printStep(3, "Start ssh-agent");
+  printStep(3, "Start ssh-agent", emoji.step3);
   if (!options.skipAgent) {
     const agentReady = startAgent();
     if (!agentReady) {
@@ -467,7 +487,7 @@ const main = async (): Promise<void> => {
     logInfo("Skipped starting ssh-agent.");
   }
 
-  printStep(4, "Add key to ssh-agent");
+  printStep(4, "Add key to ssh-agent", emoji.step4);
   if (!options.skipAdd) {
     const added = addKeyToAgent(selectedKeyPath);
     if (!added) {
@@ -479,7 +499,7 @@ const main = async (): Promise<void> => {
     logInfo("Skipped adding key to agent.");
   }
 
-  printStep(5, "Add the public key to GitHub");
+  printStep(5, "Add the public key to GitHub", emoji.step5);
   const publicKey = readFileSync(publicKeyPath, "utf8");
   if (!options.skipCopy) {
     const copied = copyToClipboard(publicKey);
@@ -496,7 +516,7 @@ const main = async (): Promise<void> => {
 
   logInfo("Open https://github.com/settings/keys to add a new SSH key.");
 
-  printStep(6, "Verify your SSH connection");
+  printStep(6, "Verify your SSH connection", emoji.step6);
   if (!options.skipVerify) {
     const verify = await promptYesNo("Run 'ssh -T git@github.com' now", false);
     if (verify) {
