@@ -149,48 +149,35 @@ export const runWorkflow = async (options: CliOptions): Promise<void> => {
 
   await waitForNextStep();
   printStep(3, "Start ssh-agent", emoji.step3);
-  if (!options.skipAgent) {
-    const agentResult = startAgent();
-    if (!agentResult.ok) {
-      if (agentResult.reason === "start_failed") {
-        logWarn(
-          "Failed to start ssh-agent. Run 'eval \"$(ssh-agent -s)\"' manually.",
-        );
-      }
-      logWarn("Continuing without ssh-agent.");
-    } else {
-      logSuccess("ssh-agent is running.");
+  const agentResult = startAgent();
+  if (!agentResult.ok) {
+    if (agentResult.reason === "start_failed") {
+      logWarn(
+        "Failed to start ssh-agent. Run 'eval \"$(ssh-agent -s)\"' manually.",
+      );
     }
+    logWarn("Continuing without ssh-agent.");
   } else {
-    logInfo("Skipped starting ssh-agent.");
+    logSuccess("ssh-agent is running.");
   }
 
   await waitForNextStep();
   printStep(4, "Add key to ssh-agent", emoji.step4);
-  if (!options.skipAdd) {
-    const added = addKeyToAgent(selectedKeyPath);
-    if (!added) {
-      logWarn(`ssh-add failed. Try: ssh-add ${selectedKeyPath}`);
-    } else {
-      logSuccess("Key added to ssh-agent.");
-    }
+  const added = addKeyToAgent(selectedKeyPath);
+  if (!added) {
+    logWarn(`ssh-add failed. Try: ssh-add ${selectedKeyPath}`);
   } else {
-    logInfo("Skipped adding key to agent.");
+    logSuccess("Key added to ssh-agent.");
   }
 
   await waitForNextStep();
   printStep(5, "Add the public key to GitHub", emoji.step5);
   const publicKey = readFileSync(publicKeyPath, "utf8");
-  if (!options.skipCopy) {
-    const copied = copyToClipboard(publicKey);
-    if (copied) {
-      logSuccess("Public key copied to clipboard.");
-    } else {
-      logWarn("Copy failed. The public key is printed below:");
-      console.log(publicKey.trim());
-    }
+  const copied = copyToClipboard(publicKey);
+  if (copied) {
+    logSuccess("Public key copied to clipboard.");
   } else {
-    logInfo("Skipping clipboard copy. Public key:");
+    logWarn("Copy failed. The public key is printed below:");
     console.log(publicKey.trim());
   }
 
@@ -198,12 +185,8 @@ export const runWorkflow = async (options: CliOptions): Promise<void> => {
 
   await waitForNextStep();
   printStep(6, "Verify your SSH connection", emoji.step6);
-  if (!options.skipVerify) {
-    const verify = await promptYesNo("Run 'ssh -T git@github.com' now", false);
-    if (verify) {
-      spawnSync("ssh", ["-T", "git@github.com"], { stdio: "inherit" });
-    }
-  } else {
-    logInfo("Skipped verification.");
+  const verify = await promptYesNo("Run 'ssh -T git@github.com' now", false);
+  if (verify) {
+    spawnSync("ssh", ["-T", "git@github.com"], { stdio: "inherit" });
   }
 };
