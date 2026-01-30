@@ -39,3 +39,10 @@ export const printList = (items: string[]): void => {
     console.log(`  ${emoji.list} ${item}`);
   });
 };
+
+export const waitForNextStep = async (delayMs = 500): Promise<void> => {
+  console.log(styles.dim(`${emoji.loading} Loading next step...`));
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
+};
