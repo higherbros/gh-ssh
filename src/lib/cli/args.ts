@@ -1,15 +1,13 @@
 import { CliOptions } from "./types.js";
 
 const defaultOptions: CliOptions = {
-  skipAgent: false,
-  skipAdd: false,
-  skipCopy: false,
-  skipVerify: false,
   help: false,
-  version: false
+  version: false,
 };
 
-export const parseArgs = (argv: string[]): { options: CliOptions; unknown: string[] } => {
+export const parseArgs = (
+  argv: string[],
+): { options: CliOptions; unknown: string[] } => {
   const options: CliOptions = { ...defaultOptions };
   const unknown: string[] = [];
   const hasValue = (value?: string): value is string =>
@@ -56,18 +54,6 @@ export const parseArgs = (argv: string[]): { options: CliOptions; unknown: strin
         } else {
           unknown.push(arg);
         }
-        break;
-      case "--skip-agent":
-        options.skipAgent = true;
-        break;
-      case "--skip-add":
-        options.skipAdd = true;
-        break;
-      case "--skip-copy":
-        options.skipCopy = true;
-        break;
-      case "--skip-verify":
-        options.skipVerify = true;
         break;
       default:
         unknown.push(arg);
