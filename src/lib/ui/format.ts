@@ -30,6 +30,7 @@ export const emoji = {
   step4: "➕",
   step5: "📋",
   step6: "✅",
+  step7: "🔗",
   loading: "⏳",
 };
 

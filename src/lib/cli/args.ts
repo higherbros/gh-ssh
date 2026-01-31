@@ -55,6 +55,12 @@ export const parseArgs = (
           unknown.push(arg);
         }
         break;
+      case "--update-config":
+        options.updateConfig = true;
+        break;
+      case "--skip-config":
+        options.skipConfig = true;
+        break;
       default:
         unknown.push(arg);
         break;
