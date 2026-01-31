@@ -9,9 +9,12 @@ import {
   addKeyToAgent,
   ensureSshDir,
   generateKey,
+  getSshConfigHostInfo,
+  isSameIdentityFile,
   listPublicKeys,
   resolveKeyPath,
   startAgent,
+  upsertSshConfigHost,
 } from "../services/ssh.js";
 import { emoji } from "../ui/format.js";
 import {
@@ -50,9 +53,31 @@ const ensureUniqueKeyPath = async (
   return candidate;
 };
 
+const promptAliasHostName = async (): Promise<string> => {
+  while (true) {
+    const alias = (
+      await promptInput(
+        "Alias name (creates Host github.com-<alias>)",
+        "github-work",
+      )
+    ).trim();
+    if (!alias) {
+      logWarn("Alias cannot be empty.");
+      continue;
+    }
+    if (/\s/.test(alias)) {
+      logWarn("Alias cannot contain spaces.");
+      continue;
+    }
+
+    return alias;
+  }
+};
+
 export const runWorkflow = async (options: CliOptions): Promise<void> => {
   const sshDir = join(homedir(), ".ssh");
   let selectedKeyPath: string | null = null;
+  let verifyHost = "github.com";
 
   printStep(1, "Check for existing SSH keys", emoji.step1);
   const publicKeys = listPublicKeys(sshDir);
@@ -171,7 +196,67 @@ export const runWorkflow = async (options: CliOptions): Promise<void> => {
   }
 
   await waitForNextStep();
-  printStep(5, "Add the public key to GitHub", emoji.step5);
+  printStep(5, "Update SSH config", emoji.step5);
+  const shouldUpdateConfig = options.skipConfig
+    ? false
+    : options.updateConfig
+      ? true
+      : await promptYesNo("Update ~/.ssh/config to use this key", true);
+
+  if (!shouldUpdateConfig) {
+    logInfo("Skipping SSH config update.");
+  } else {
+    const useAlias = await promptYesNo(
+      "Set an SSH host alias for this key",
+      false,
+    );
+    const alias = useAlias ? await promptAliasHostName() : null;
+    const host = alias ? `github.com-${alias}` : "github.com";
+    if (alias) {
+      verifyHost = host;
+    }
+    const hostName = useAlias ? "github.com" : undefined;
+    const hostInfo = getSshConfigHostInfo(sshDir, host);
+
+    if (!hostInfo.ok) {
+      logWarn("Failed to read ~/.ssh/config.");
+    } else {
+      const existingIdentityFile = hostInfo.info.identityFile;
+      const identityMatches = existingIdentityFile
+        ? isSameIdentityFile(existingIdentityFile, selectedKeyPath)
+        : false;
+      let shouldOverwrite = true;
+
+      if (existingIdentityFile && !identityMatches && !options.updateConfig) {
+        shouldOverwrite = await promptYesNo(
+          `SSH config already has an IdentityFile for ${host}. Overwrite?`,
+          false,
+        );
+      }
+
+      if (!shouldOverwrite) {
+        logInfo("Skipping SSH config update.");
+      } else {
+        const updateResult = upsertSshConfigHost(sshDir, {
+          host,
+          identityFile: selectedKeyPath,
+          hostName,
+          useKeychain: process.platform === "darwin",
+        });
+
+        if (!updateResult.ok) {
+          logWarn("Failed to update ~/.ssh/config.");
+        } else if (updateResult.changed) {
+          logSuccess(`SSH config updated for ${host}.`);
+        } else {
+          logInfo("SSH config already up to date.");
+        }
+      }
+    }
+  }
+
+  await waitForNextStep();
+  printStep(6, "Add the public key to GitHub", emoji.step6);
   const publicKey = readFileSync(publicKeyPath, "utf8");
   const copied = copyToClipboard(publicKey);
   if (copied) {
@@ -184,9 +269,9 @@ export const runWorkflow = async (options: CliOptions): Promise<void> => {
   logInfo("Open https://github.com/settings/keys to add a new SSH key.");
 
   await waitForNextStep();
-  printStep(6, "Verify your SSH connection", emoji.step6);
-  const verify = await promptYesNo("Run 'ssh -T git@github.com' now", false);
+  printStep(7, "Verify your SSH connection", emoji.step7);
+  const verify = await promptYesNo(`Run 'ssh -T git@${verifyHost}' now`, false);
   if (verify) {
-    spawnSync("ssh", ["-T", "git@github.com"], { stdio: "inherit" });
+    spawnSync("ssh", ["-T", `git@${verifyHost}`], { stdio: "inherit" });
   }
 };
