@@ -1,4 +1,4 @@
-export type KeyType = "ed25519" | "rsa";
+export type KeyType = 'ed25519' | 'rsa';
 
 export type CliOptions = {
   email?: string;
