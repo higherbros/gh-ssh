@@ -1,7 +1,7 @@
 {
   "name": "gh-ssh",
   "version": "0.1.0",
-  "description": "A simple, safe, one-command tool to generate and configure SSH keys for GitHub on macOS.",
+  "description": "Interactive CLI that guides you through creating or reusing SSH keys and connecting them to GitHub.",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -27,7 +27,7 @@
     "prepare": "husky"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=20.0.0"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.4.0"
