@@ -8,14 +8,15 @@ on:
       - opened
       - synchronize
       - reopened
-      - closed
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
 
 jobs:
   lint-and-test:
-    if: github.event.action != 'closed' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
