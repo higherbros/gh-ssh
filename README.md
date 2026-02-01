@@ -58,7 +58,7 @@ Options:
 ## Platform notes
 
 - macOS: full workflow, clipboard uses `pbcopy`.
-- Linux/Windows: clipboard step prints the key to the terminal instead.
+- Linux: clipboard step prints the key to the terminal instead.
 - Requires `ssh-keygen`, `ssh-agent`, and `ssh-add` to be available in PATH.
 
 ## Development
