@@ -4,14 +4,15 @@ This file provides guidance for AI agents working with the gh-ssh codebase.
 
 ## Project Overview
 
-**gh-ssh** is a TypeScript CLI tool for macOS that automates SSH key setup for GitHub. It provides a 6-step interactive workflow that:
+**gh-ssh** is an interactive CLI that guides you through creating or reusing SSH keys and connecting them to GitHub. It provides a 7-step interactive workflow that:
 
-1. Checks for existing SSH keys
-2. Generates a new SSH key pair (ed25519 or RSA)
-3. Starts the ssh-agent
-4. Adds the key to the ssh-agent
-5. Copies the public key to clipboard
-6. Verifies the SSH connection to GitHub
+1. Detect existing public keys in ~/.ssh and optionally reuse one.
+2. Generate a new key pair if needed (ed25519 by default, rsa 4096 fallback).
+3. Start ssh-agent if it is not already running.
+4. Add the selected key to ssh-agent.
+5. Optionally update ~/.ssh/config (with an optional GitHub host alias).
+6. Copy the public key to clipboard (macOS) or print it to the terminal, then add it at https://github.com/settings/keys.
+7. Prompt to verify with `ssh -T git@github.com` (or your alias).
 
 **Key characteristics:**
 
@@ -32,7 +33,7 @@ src/
     │   ├── help.ts           # Help text display
     │   ├── version.ts        # Version extraction from package.json
     │   ├── run.ts            # Main orchestrator - handles flags, calls workflow
-    │   ├── workflow.ts       # Core 6-step SSH setup workflow
+    │   ├── workflow.ts       # Core 7-step SSH setup workflow
     │   └── constants.ts      # TOTAL_STEPS constant
     ├── services/             # System integration layer
     │   ├── ssh.ts            # SSH key operations (generate, list, agent)
@@ -43,6 +44,11 @@ src/
         ├── format.ts         # ANSI colors, emoji, text styling
         ├── output.ts         # Structured logging (logInfo, logSuccess, etc.)
         └── prompts.ts        # @inquirer/prompts wrappers
+tests/
+├── args.test.ts              # CLI args parsing tests
+├── command.test.ts           # runCommand wrapper tests
+├── help.test.ts              # Help text tests
+└── version.test.ts           # Version resolution tests
 ```
 
 ### Layer Responsibilities
@@ -56,7 +62,7 @@ src/
 | File                          | Purpose                                 |
 | ----------------------------- | --------------------------------------- |
 | `src/cli.ts`                  | Entry point                             |
-| `src/lib/cli/workflow.ts`     | Main business logic (6-step workflow)   |
+| `src/lib/cli/workflow.ts`     | Main business logic (7-step workflow)   |
 | `src/lib/cli/args.ts`         | CLI argument parsing                    |
 | `src/lib/services/ssh.ts`     | SSH key generation and agent management |
 | `src/lib/services/command.ts` | Command execution wrapper               |
@@ -164,7 +170,7 @@ npm start
 
 ## Testing
 
-No automated tests currently. Test manually:
+Automated tests exist via Vitest. Run:
 
 ```bash
 # Run the CLI interactively
