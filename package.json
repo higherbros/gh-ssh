@@ -1,9 +1,28 @@
 {
   "name": "gh-ssh",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Interactive CLI that guides you through creating or reusing SSH keys and connecting them to GitHub.",
   "license": "MIT",
   "type": "module",
+  "author": "Juncen Zhou <juncenzhou@higherbros.me>",
+  "keywords": [
+    "ssh",
+    "github",
+    "cli",
+    "ssh-keygen",
+    "ssh-agent",
+    "developer-tools",
+    "key-management",
+    "terminal"
+  ],
+  "homepage": "https://github.com/higherbros/gh-ssh#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/higherbros/gh-ssh.git"
+  },
+  "bugs": {
+    "url": "https://github.com/higherbros/gh-ssh/issues"
+  },
   "bin": {
     "gh-ssh": "dist/cli.js"
   },
