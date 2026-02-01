@@ -1,6 +1,6 @@
 # gh-ssh
 
-An interactive CLI that guides you through creating or reusing an SSH key and connecting it to GitHub in a 7-step workflow. Optimized for macOS with clipboard support, but works on Linux/Windows by printing the key when clipboard isn’t available.
+An interactive CLI that guides you through creating or reusing an SSH key and connecting it to GitHub in a 7-step workflow. Optimized for macOS with clipboard support, but works on Linux by printing the key when clipboard isn’t available.
 
 ## Installation
 
