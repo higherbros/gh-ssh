@@ -1,6 +1,6 @@
 {
   "name": "gh-ssh",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Interactive CLI that guides you through creating or reusing SSH keys and connecting them to GitHub.",
   "license": "MIT",
   "type": "module",
