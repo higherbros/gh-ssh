@@ -185,5 +185,5 @@ npm run dev -- --email test@example.com --type ed25519
 ## Platform Notes
 
 - **macOS**: Full functionality including clipboard
-- **Linux/Windows**: Works but clipboard step will be skipped with a warning
+- **Linux**: Works but clipboard step will be skipped with a warning
 - Clipboard detection: `process.platform === "darwin"`
