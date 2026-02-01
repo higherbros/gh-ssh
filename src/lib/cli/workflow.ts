@@ -281,7 +281,7 @@ export const runWorkflow = async (options: CliOptions): Promise<void> => {
     );
   }
 
-  waitForNextStep();
+  await waitForNextStep();
   printStep(7, 'Verify your SSH connection', emoji.step7);
   const verify = await promptYesNo(`Run 'ssh -T git@${verifyHost}' now`, false);
   if (verify) {
