@@ -1,4 +1,4 @@
-import { CliOptions } from "./types.js";
+import { CliOptions } from './types.js';
 
 const defaultOptions: CliOptions = {
   help: false,
@@ -6,25 +6,25 @@ const defaultOptions: CliOptions = {
 };
 
 export const parseArgs = (
-  argv: string[],
+  argv: string[]
 ): { options: CliOptions; unknown: string[] } => {
   const options: CliOptions = { ...defaultOptions };
   const unknown: string[] = [];
   const hasValue = (value?: string): value is string =>
-    typeof value === "string" && value.length > 0 && !value.startsWith("-");
+    typeof value === 'string' && value.length > 0 && !value.startsWith('-');
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     switch (arg) {
-      case "-h":
-      case "--help":
+      case '-h':
+      case '--help':
         options.help = true;
         break;
-      case "-v":
-      case "--version":
+      case '-v':
+      case '--version':
         options.version = true;
         break;
-      case "--email":
+      case '--email':
         if (hasValue(argv[i + 1])) {
           options.email = argv[i + 1];
           i += 1;
@@ -32,22 +32,22 @@ export const parseArgs = (
           unknown.push(arg);
         }
         break;
-      case "--type": {
+      case '--type': {
         const value = argv[i + 1];
         if (!hasValue(value)) {
           unknown.push(arg);
           break;
         }
-        if (value === "ed25519" || value === "rsa") {
+        if (value === 'ed25519' || value === 'rsa') {
           options.type = value;
           i += 1;
         } else {
-          unknown.push(arg, value ?? "");
+          unknown.push(arg, value ?? '');
           i += 1;
         }
         break;
       }
-      case "--key-name":
+      case '--key-name':
         if (hasValue(argv[i + 1])) {
           options.keyName = argv[i + 1];
           i += 1;
@@ -55,10 +55,10 @@ export const parseArgs = (
           unknown.push(arg);
         }
         break;
-      case "--update-config":
+      case '--update-config':
         options.updateConfig = true;
         break;
-      case "--skip-config":
+      case '--skip-config':
         options.skipConfig = true;
         break;
       default:

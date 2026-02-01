@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawnSync } from 'node:child_process';
 import {
   chmodSync,
   existsSync,
@@ -6,21 +6,21 @@ import {
   readdirSync,
   readFileSync,
   writeFileSync,
-} from "node:fs";
-import { homedir } from "node:os";
-import { isAbsolute, join } from "node:path";
-import { KeyType } from "../cli/types.js";
-import { runCommand } from "./command.js";
+} from 'node:fs';
+import { homedir } from 'node:os';
+import { isAbsolute, join } from 'node:path';
+import { KeyType } from '../cli/types.js';
+import { runCommand } from './command.js';
 
 type AgentStartResult =
   | { ok: true }
-  | { ok: false; reason: "start_failed" | "no_socket" };
+  | { ok: false; reason: 'start_failed' | 'no_socket' };
 
 const parseAgentOutput = (
-  output: string,
+  output: string
 ): { socket?: string; pid?: string } => {
-  const socketMatch = output.match(/SSH_AUTH_SOCK=([^;]+);/);
-  const pidMatch = output.match(/SSH_AGENT_PID=([0-9]+);/);
+  const socketMatch = /SSH_AUTH_SOCK=([^;]+);/.exec(output);
+  const pidMatch = /SSH_AGENT_PID=([0-9]+);/.exec(output);
 
   return {
     socket: socketMatch?.[1],
@@ -34,7 +34,7 @@ export const listPublicKeys = (sshDir: string): string[] => {
   }
 
   return readdirSync(sshDir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".pub"))
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.pub'))
     .map((entry) => join(sshDir, entry.name));
 };
 
@@ -45,12 +45,12 @@ export const ensureSshDir = (sshDir: string): void => {
 };
 
 export const resolveKeyPath = (sshDir: string, keyName: string): string => {
-  const sanitized = keyName.endsWith(".pub") ? keyName.slice(0, -4) : keyName;
-  if (sanitized === "~") {
+  const sanitized = keyName.endsWith('.pub') ? keyName.slice(0, -4) : keyName;
+  if (sanitized === '~') {
     return homedir();
   }
 
-  if (sanitized.startsWith("~/")) {
+  if (sanitized.startsWith('~/')) {
     return join(homedir(), sanitized.slice(2));
   }
 
@@ -66,9 +66,9 @@ export const startAgent = (): AgentStartResult => {
     return { ok: true };
   }
 
-  const result = runCommand("ssh-agent", ["-s"]);
+  const result = runCommand('ssh-agent', ['-s']);
   if (!result.ok || !result.stdout) {
-    return { ok: false, reason: "start_failed" };
+    return { ok: false, reason: 'start_failed' };
   }
 
   const parsed = parseAgentOutput(result.stdout);
@@ -79,12 +79,12 @@ export const startAgent = (): AgentStartResult => {
     process.env.SSH_AGENT_PID = parsed.pid;
   }
 
-  return parsed.socket ? { ok: true } : { ok: false, reason: "no_socket" };
+  return parsed.socket ? { ok: true } : { ok: false, reason: 'no_socket' };
 };
 
 export const addKeyToAgent = (keyPath: string): boolean => {
-  const result = spawnSync("ssh-add", [keyPath], {
-    stdio: "inherit",
+  const result = spawnSync('ssh-add', [keyPath], {
+    stdio: 'inherit',
     env: process.env,
   });
 
@@ -94,49 +94,49 @@ export const addKeyToAgent = (keyPath: string): boolean => {
 export const generateKey = (
   keyPath: string,
   email: string,
-  type: KeyType,
+  type: KeyType
 ): boolean => {
-  const argsList = ["-t", type, "-C", email, "-f", keyPath];
-  if (type === "rsa") {
-    argsList.push("-b", "4096");
+  const argsList = ['-t', type, '-C', email, '-f', keyPath];
+  if (type === 'rsa') {
+    argsList.push('-b', '4096');
   }
 
-  const result = spawnSync("ssh-keygen", argsList, { stdio: "inherit" });
+  const result = spawnSync('ssh-keygen', argsList, { stdio: 'inherit' });
   return result.status === 0;
 };
 
-type HostBlock = {
+interface HostBlock {
   start: number;
   end: number;
-};
+}
 
-type SshConfigHostInfo = {
+interface SshConfigHostInfo {
   exists: boolean;
   identityFile?: string;
-};
+}
 
 type SshConfigHostInfoResult =
   | { ok: true; info: SshConfigHostInfo }
-  | { ok: false; reason: "read_failed" };
+  | { ok: false; reason: 'read_failed' };
 
-type SshConfigUpdateOptions = {
+interface SshConfigUpdateOptions {
   host: string;
   identityFile: string;
   hostName?: string;
   useKeychain: boolean;
-};
+}
 
 type SshConfigUpdateResult =
   | { ok: true; changed: boolean }
-  | { ok: false; reason: "read_failed" | "write_failed" };
+  | { ok: false; reason: 'read_failed' | 'write_failed' };
 
 const splitLines = (content: string): string[] => {
   if (!content) {
     return [];
   }
 
-  const lines = content.split("\n");
-  if (lines.length > 0 && lines[lines.length - 1] === "") {
+  const lines = content.split('\n');
+  if (lines.length > 0 && lines[lines.length - 1] === '') {
     lines.pop();
   }
 
@@ -145,7 +145,7 @@ const splitLines = (content: string): string[] => {
 
 const parseHostPatterns = (line: string): string[] =>
   line
-    .replace(/^\s*Host\s+/i, "")
+    .replace(/^\s*Host\s+/i, '')
     .trim()
     .split(/\s+/)
     .filter(Boolean);
@@ -155,7 +155,7 @@ const findHostBlock = (lines: string[], host: string): HostBlock | null => {
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
-    const match = line.match(/^\s*Host\s+(.+)$/i);
+    const match = /^\s*Host\s+(.+)$/i.exec(line);
     if (!match) {
       continue;
     }
@@ -178,15 +178,15 @@ const findHostBlock = (lines: string[], host: string): HostBlock | null => {
 };
 
 const stripInlineComment = (value: string): string =>
-  value.replace(/\s+#.*$/, "").trim();
+  value.replace(/\s+#.*$/, '').trim();
 
-const stripQuotes = (value: string): string => value.replace(/^"(.*)"$/, "$1");
+const stripQuotes = (value: string): string => value.replace(/^"(.*)"$/, '$1');
 
 const quoteIfNeeded = (value: string): string =>
   /\s/.test(value) ? `"${value}"` : value;
 
 const getDirectiveValue = (line: string, directive: string): string | null => {
-  const match = line.match(new RegExp(`^\\s*${directive}\\s+(.+)$`, "i"));
+  const match = new RegExp(`^\\s*${directive}\\s+(.+)$`, 'i').exec(line);
   if (!match) {
     return null;
   }
@@ -198,7 +198,7 @@ const findDirectiveInBlock = (
   lines: string[],
   start: number,
   end: number,
-  directive: string,
+  directive: string
 ): string | undefined => {
   for (let i = start + 1; i < end; i += 1) {
     const value = getDirectiveValue(lines[i], directive);
@@ -212,10 +212,10 @@ const findDirectiveInBlock = (
 
 const normalizeIdentityFileValue = (value: string): string => {
   const stripped = stripQuotes(stripInlineComment(value));
-  if (stripped === "~") {
+  if (stripped === '~') {
     return homedir();
   }
-  if (stripped.startsWith("~/")) {
+  if (stripped.startsWith('~/')) {
     return join(homedir(), stripped.slice(2));
   }
 
@@ -225,7 +225,7 @@ const normalizeIdentityFileValue = (value: string): string => {
 const formatIdentityFileValue = (value: string): string => {
   const home = homedir();
   if (value === home) {
-    return quoteIfNeeded("~");
+    return quoteIfNeeded('~');
   }
 
   const prefix = `${home}/`;
@@ -237,30 +237,30 @@ const formatIdentityFileValue = (value: string): string => {
 };
 
 const readSshConfig = (
-  sshDir: string,
+  sshDir: string
 ):
   | { ok: true; content: string; lines: string[]; configPath: string }
   | {
       ok: false;
-      reason: "read_failed";
+      reason: 'read_failed';
       configPath: string;
     } => {
-  const configPath = join(sshDir, "config");
+  const configPath = join(sshDir, 'config');
   if (!existsSync(configPath)) {
-    return { ok: true, content: "", lines: [], configPath };
+    return { ok: true, content: '', lines: [], configPath };
   }
 
   try {
-    const content = readFileSync(configPath, "utf8");
+    const content = readFileSync(configPath, 'utf8');
     return { ok: true, content, lines: splitLines(content), configPath };
   } catch {
-    return { ok: false, reason: "read_failed", configPath };
+    return { ok: false, reason: 'read_failed', configPath };
   }
 };
 
 export const getSshConfigHostInfo = (
   sshDir: string,
-  host: string,
+  host: string
 ): SshConfigHostInfoResult => {
   const result = readSshConfig(sshDir);
   if (!result.ok) {
@@ -276,7 +276,7 @@ export const getSshConfigHostInfo = (
     result.lines,
     hostBlock.start,
     hostBlock.end,
-    "IdentityFile",
+    'IdentityFile'
   );
 
   return { ok: true, info: { exists: true, identityFile } };
@@ -284,14 +284,14 @@ export const getSshConfigHostInfo = (
 
 export const isSameIdentityFile = (
   existingValue: string,
-  desiredPath: string,
+  desiredPath: string
 ): boolean =>
   normalizeIdentityFileValue(existingValue) ===
   normalizeIdentityFileValue(desiredPath);
 
 export const upsertSshConfigHost = (
   sshDir: string,
-  options: SshConfigUpdateOptions,
+  options: SshConfigUpdateOptions
 ): SshConfigUpdateResult => {
   ensureSshDir(sshDir);
   const result = readSshConfig(sshDir);
@@ -301,7 +301,7 @@ export const upsertSshConfigHost = (
 
   const { lines, content, configPath } = result;
   const hostBlock = findHostBlock(lines, options.host);
-  const indent = "  ";
+  const indent = '  ';
   const identityFileValue = formatIdentityFileValue(options.identityFile);
 
   const insertLines: string[] = [];
@@ -330,17 +330,17 @@ export const upsertSshConfigHost = (
     lines.splice(
       hostBlock.start,
       hostBlock.end - hostBlock.start,
-      ...updatedBlock,
+      ...updatedBlock
     );
   } else {
-    if (lines.length > 0 && lines[lines.length - 1].trim() !== "") {
-      lines.push("");
+    if (lines.length > 0 && lines[lines.length - 1].trim() !== '') {
+      lines.push('');
     }
     lines.push(`Host ${options.host}`, ...insertLines);
   }
 
-  const updatedContent = `${lines.join("\n")}\n`;
-  const normalizedOriginal = content.endsWith("\n") ? content : `${content}\n`;
+  const updatedContent = `${lines.join('\n')}\n`;
+  const normalizedOriginal = content.endsWith('\n') ? content : `${content}\n`;
   if (updatedContent === normalizedOriginal) {
     return { ok: true, changed: false };
   }
@@ -349,7 +349,7 @@ export const upsertSshConfigHost = (
     writeFileSync(configPath, updatedContent, { mode: 0o600 });
     chmodSync(configPath, 0o600);
   } catch {
-    return { ok: false, reason: "write_failed" };
+    return { ok: false, reason: 'write_failed' };
   }
 
   return { ok: true, changed: true };

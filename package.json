@@ -18,7 +18,11 @@
     "postbuild": "node -e \"require('node:fs').chmodSync('dist/cli.js', 0o755)\"",
     "typecheck": "tsc --noEmit",
     "start": "node dist/cli.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "format": "prettier --write 'src/**/*.ts'",
+    "lint": "eslint 'src/**/*.{ts,js}'",
+    "lint:fix": "eslint 'src/**/*.{ts,js}' --fix",
+    "prepare": "husky"
   },
   "engines": {
     "node": ">=22.0.0"
@@ -27,9 +31,14 @@
     "@inquirer/prompts": "^7.4.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/node": "^22.12.0",
+    "eslint": "^9.39.2",
+    "husky": "^9.1.7",
+    "prettier": "^3.8.1",
     "tsx": "^4.7.0",
-    "typescript": "^5.5.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.54.0",
     "vite": "^7.3.1"
   }
 }

@@ -1,7 +1,7 @@
-import { runCommand } from "./command.js";
+import { runCommand } from './command.js';
 
 export const getGitEmail = (): string | null => {
-  const result = runCommand("git", ["config", "--get", "user.email"]);
+  const result = runCommand('git', ['config', '--get', 'user.email']);
   if (!result.ok || !result.stdout) {
     return null;
   }

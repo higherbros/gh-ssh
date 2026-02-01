@@ -1,12 +1,12 @@
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const findPackageJson = (startDir: string): string | null => {
   let current = startDir;
 
   while (true) {
-    const candidate = join(current, "package.json");
+    const candidate = join(current, 'package.json');
     if (existsSync(candidate)) {
       return candidate;
     }
@@ -27,7 +27,7 @@ export const getPackageVersion = (): string | null => {
     if (!packageJsonPath) {
       return null;
     }
-    const raw = readFileSync(packageJsonPath, "utf8");
+    const raw = readFileSync(packageJsonPath, 'utf8');
     const data = JSON.parse(raw) as { version?: string };
     return data.version ?? null;
   } catch {
