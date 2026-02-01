@@ -268,6 +268,19 @@ export const runWorkflow = async (options: CliOptions): Promise<void> => {
 
   logInfo('Open https://github.com/settings/keys to add a new SSH key.');
 
+  let keyAdded = await promptYesNo(
+    'Did you add the key to your GitHub SSH keys page',
+    false
+  );
+  while (!keyAdded) {
+    logInfo('Paste the key in GitHub, then return here.');
+    await waitForNextStep();
+    keyAdded = await promptYesNo(
+      'Have you added the key to your GitHub SSH keys page',
+      false
+    );
+  }
+
   await waitForNextStep();
   printStep(7, 'Verify your SSH connection', emoji.step7);
   const verify = await promptYesNo(`Run 'ssh -T git@${verifyHost}' now`, false);
