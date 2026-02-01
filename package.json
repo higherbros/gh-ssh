@@ -17,6 +17,8 @@
     "build": "vite build",
     "postbuild": "node -e \"require('node:fs').chmodSync('dist/cli.js', 0o755)\"",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "start": "node dist/cli.js",
     "prepublishOnly": "npm run build",
     "format": "prettier --write 'src/**/*.ts'",
@@ -39,6 +41,7 @@
     "tsx": "^4.7.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.54.0",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
   }
 }
