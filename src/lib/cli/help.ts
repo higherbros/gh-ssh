@@ -1,5 +1,5 @@
 export const helpText = `gh-ssh
-A simple, safe, one-command tool to generate and configure SSH keys for GitHub on macOS.
+Interactive CLI that guides you through creating or reusing SSH keys and connecting them to GitHub.
 
 Usage:
   gh-ssh
