@@ -19,8 +19,8 @@ type AgentStartResult =
 const parseAgentOutput = (
   output: string
 ): { socket?: string; pid?: string } => {
-  const socketMatch = output.match(/SSH_AUTH_SOCK=([^;]+);/);
-  const pidMatch = output.match(/SSH_AGENT_PID=([0-9]+);/);
+  const socketMatch = /SSH_AUTH_SOCK=([^;]+);/.exec(output);
+  const pidMatch = /SSH_AGENT_PID=([0-9]+);/.exec(output);
 
   return {
     socket: socketMatch?.[1],
@@ -105,26 +105,26 @@ export const generateKey = (
   return result.status === 0;
 };
 
-type HostBlock = {
+interface HostBlock {
   start: number;
   end: number;
-};
+}
 
-type SshConfigHostInfo = {
+interface SshConfigHostInfo {
   exists: boolean;
   identityFile?: string;
-};
+}
 
 type SshConfigHostInfoResult =
   | { ok: true; info: SshConfigHostInfo }
   | { ok: false; reason: 'read_failed' };
 
-type SshConfigUpdateOptions = {
+interface SshConfigUpdateOptions {
   host: string;
   identityFile: string;
   hostName?: string;
   useKeychain: boolean;
-};
+}
 
 type SshConfigUpdateResult =
   | { ok: true; changed: boolean }
@@ -155,7 +155,7 @@ const findHostBlock = (lines: string[], host: string): HostBlock | null => {
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
-    const match = line.match(/^\s*Host\s+(.+)$/i);
+    const match = /^\s*Host\s+(.+)$/i.exec(line);
     if (!match) {
       continue;
     }
@@ -186,7 +186,7 @@ const quoteIfNeeded = (value: string): string =>
   /\s/.test(value) ? `"${value}"` : value;
 
 const getDirectiveValue = (line: string, directive: string): string | null => {
-  const match = line.match(new RegExp(`^\\s*${directive}\\s+(.+)$`, 'i'));
+  const match = new RegExp(`^\\s*${directive}\\s+(.+)$`, 'i').exec(line);
   if (!match) {
     return null;
   }

@@ -1,6 +1,6 @@
 export type KeyType = 'ed25519' | 'rsa';
 
-export type CliOptions = {
+export interface CliOptions {
   email?: string;
   type?: KeyType;
   keyName?: string;
@@ -8,4 +8,4 @@ export type CliOptions = {
   skipConfig?: boolean;
   help: boolean;
   version: boolean;
-};
+}
