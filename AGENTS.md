@@ -11,7 +11,7 @@ This file provides guidance for AI agents working with the gh-ssh codebase.
 3. Start ssh-agent if it is not already running.
 4. Add the selected key to ssh-agent.
 5. Optionally update ~/.ssh/config (with an optional GitHub host alias).
-6. Copy the public key to clipboard (macOS) or print it to the terminal, then add it at https://github.com/settings/keys.
+6. Copy the public key to clipboard (macOS/Linux) or print it to the terminal, then add it at https://github.com/settings/keys.
 7. Prompt to verify with `ssh -T git@github.com` (or your alias).
 
 **Key characteristics:**
@@ -19,6 +19,7 @@ This file provides guidance for AI agents working with the gh-ssh codebase.
 - TypeScript with ES2022 target, ESM modules
 - Node.js >= 20.0.0 required
 - macOS optimized (clipboard uses `pbcopy`)
+- Linux support (clipboard uses `wl-copy`, `xclip`, or `xsel`)
 - Uses system commands (`ssh-keygen`, `ssh-agent`, `ssh-add`) directly
 
 ## Architecture
@@ -185,5 +186,5 @@ npm run dev -- --email test@example.com --type ed25519
 ## Platform Notes
 
 - **macOS**: Full functionality including clipboard
-- **Linux**: Works but clipboard step will be skipped with a warning
-- Clipboard detection: `process.platform === "darwin"`
+- **Linux**: Full functionality (requires `wl-copy`, `xclip`, or `xsel` for clipboard)
+- Clipboard detection: Checks for `pbcopy` (macOS) or `wl-copy`/`xclip`/`xsel` (Linux)
