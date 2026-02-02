@@ -69,7 +69,11 @@ describe('copyToClipboard', () => {
     const result = copyToClipboard('secret-key');
 
     expect(result).toBe(true);
-    expect(cp.spawnSync).toHaveBeenCalledWith('wl-copy', [], expect.anything());
+    expect(cp.spawnSync).toHaveBeenCalledWith(
+      'wl-copy',
+      [],
+      expect.objectContaining({ input: 'secret-key' })
+    );
     expect(cp.spawnSync).toHaveBeenCalledWith(
       'xclip',
       ['-selection', 'clipboard'],
@@ -100,7 +104,7 @@ describe('copyToClipboard', () => {
     expect(cp.spawnSync).toHaveBeenLastCalledWith(
       'xsel',
       ['--clipboard', '--input'],
-      expect.anything()
+      expect.objectContaining({ input: 'secret-key' })
     );
   });
 
@@ -130,6 +134,10 @@ describe('copyToClipboard', () => {
     const result = copyToClipboard('secret-key');
 
     expect(result).toBe(true);
-    expect(cp.spawnSync).toHaveBeenCalledWith('pbcopy', [], expect.anything());
+    expect(cp.spawnSync).toHaveBeenCalledWith(
+      'pbcopy',
+      [],
+      expect.objectContaining({ input: 'secret-key' })
+    );
   });
 });
