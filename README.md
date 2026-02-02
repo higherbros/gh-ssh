@@ -1,6 +1,6 @@
 # gh-ssh
 
-An interactive CLI that guides you through creating or reusing an SSH key and connecting it to GitHub in a 7-step workflow. Optimized for macOS with clipboard support, but works on Linux by printing the key when clipboard isn’t available.
+An interactive CLI that guides you through creating or reusing an SSH key and connecting it to GitHub in a 7-step workflow. Supports macOS and Linux with clipboard integration.
 
 ## Installation
 
@@ -52,13 +52,13 @@ Options:
 3. Start ssh-agent if it is not already running.
 4. Add the selected key to ssh-agent.
 5. Optionally update ~/.ssh/config (with an optional GitHub host alias).
-6. Copy the public key to clipboard (macOS) or print it to the terminal, then add it at https://github.com/settings/keys.
+6. Copy the public key to clipboard (macOS/Linux) or print it to the terminal, then add it at https://github.com/settings/keys.
 7. Prompt to verify with `ssh -T git@github.com` (or your alias).
 
 ## Platform notes
 
 - macOS: full workflow, clipboard uses `pbcopy`.
-- Linux: clipboard step prints the key to the terminal instead.
+- Linux: full workflow, clipboard uses `wl-copy`, `xclip`, or `xsel` (if available).
 - Requires `ssh-keygen`, `ssh-agent`, and `ssh-add` to be available in PATH.
 
 ## Development
