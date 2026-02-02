@@ -140,4 +140,10 @@ describe('copyToClipboard', () => {
       expect.objectContaining({ input: 'secret-key' })
     );
   });
+
+  it('should return false on Windows', () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const result = copyToClipboard('secret-key');
+    expect(result).toBe(false);
+  });
 });
