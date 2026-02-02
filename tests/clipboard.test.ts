@@ -145,5 +145,6 @@ describe('copyToClipboard', () => {
     Object.defineProperty(process, 'platform', { value: 'win32' });
     const result = copyToClipboard('secret-key');
     expect(result).toBe(false);
+    expect(cp.spawnSync).not.toHaveBeenCalled();
   });
 });
