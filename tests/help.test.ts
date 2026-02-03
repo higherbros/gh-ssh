@@ -8,5 +8,8 @@ describe('helpText', () => {
     expect(helpText).toContain('--type <ed25519|rsa>');
     expect(helpText).toContain('--update-config');
     expect(helpText).toContain('--skip-config');
+    expect(helpText).toContain('--upload');
+    expect(helpText).toContain('--skip-upload');
+    expect(helpText).toContain('--key-title <title>');
   });
 });

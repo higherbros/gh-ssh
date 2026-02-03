@@ -34,6 +34,9 @@ Provide options up front:
 - `gh-ssh --key-name id_github_work`
 - `gh-ssh --update-config`
 - `gh-ssh --skip-config`
+- `gh-ssh --upload`
+- `gh-ssh --skip-upload`
+- `gh-ssh --key-title "My MacBook (work)"`
 
 Options:
 
@@ -44,6 +47,9 @@ Options:
 - `--key-name <name>` Key filename in ~/.ssh (default: id_ed25519 or id_rsa)
 - `--update-config` Update ~/.ssh/config with the selected key
 - `--skip-config` Skip updating ~/.ssh/config
+- `--upload` Upload the public key to GitHub via gh (errors if not possible)
+- `--skip-upload` Skip uploading via gh and show the manual flow
+- `--key-title <title>` Title to use when uploading via gh
 
 ## How it works
 
@@ -52,7 +58,7 @@ Options:
 3. Start ssh-agent if it is not already running.
 4. Add the selected key to ssh-agent.
 5. Optionally update ~/.ssh/config (with an optional GitHub host alias).
-6. Copy the public key to clipboard (macOS/Linux) or print it to the terminal, then add it at https://github.com/settings/keys.
+6. Copy the public key to clipboard (macOS/Linux) or print it to the terminal, then add it at [GitHub Settings](https://github.com/settings/keys).
 7. Prompt to verify with `ssh -T git@github.com` (or your alias).
 
 ## Platform notes

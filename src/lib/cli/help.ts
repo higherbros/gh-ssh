@@ -12,4 +12,7 @@ Options:
   --key-name <name>    Key filename in ~/.ssh (default: id_ed25519 or id_rsa)
   --update-config      Update ~/.ssh/config with the selected key
   --skip-config        Skip updating ~/.ssh/config
+  --upload             Upload the public key to GitHub via gh
+  --skip-upload        Skip uploading via gh and show the manual flow
+  --key-title <title>  Title to use when uploading via gh
 `;

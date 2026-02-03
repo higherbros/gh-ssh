@@ -21,6 +21,9 @@ describe('parseArgs', () => {
       'id_rsa_custom',
       '--update-config',
       '--skip-config',
+      '--upload',
+      '--key-title',
+      'My key title',
     ]);
 
     expect(options.help).toBe(true);
@@ -30,6 +33,8 @@ describe('parseArgs', () => {
     expect(options.keyName).toBe('id_rsa_custom');
     expect(options.updateConfig).toBe(true);
     expect(options.skipConfig).toBe(true);
+    expect(options.upload).toBe(true);
+    expect(options.keyTitle).toBe('My key title');
     expect(unknown).toEqual([]);
   });
 
@@ -45,5 +50,13 @@ describe('parseArgs', () => {
 
     expect(options.help).toBe(true);
     expect(unknown).toEqual(['--type', '--email']);
+  });
+
+  it('tracks missing key title without consuming next flag', () => {
+    const { options, unknown } = parseArgs(['--key-title', '--upload']);
+
+    expect(options.upload).toBe(true);
+    expect(options.keyTitle).toBeUndefined();
+    expect(unknown).toEqual(['--key-title']);
   });
 });
