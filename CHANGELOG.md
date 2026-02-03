@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/higherbros/gh-ssh/compare/gh-ssh-v1.2.0...gh-ssh-v1.2.1) (2026-02-03)
+
+
+### Bug Fixes
+
+* **workflows:** Update release workflow to trigger on published releases ([#19](https://github.com/higherbros/gh-ssh/issues/19)) ([292c888](https://github.com/higherbros/gh-ssh/commit/292c888fb82fb0eeb892e759de75a73673ebaaeb))
+
 ## [1.2.0](https://github.com/higherbros/gh-ssh/compare/gh-ssh-v1.1.0...gh-ssh-v1.2.0) (2026-02-03)
 
 
