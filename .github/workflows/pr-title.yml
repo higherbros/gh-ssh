@@ -34,4 +34,4 @@ jobs:
             ci
             perf
             revert
-          requireScope: false
+          requireScope: true
