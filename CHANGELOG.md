@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/higherbros/gh-ssh/compare/gh-ssh-v1.2.1...gh-ssh-v1.3.0) (2026-02-03)
+
+
+### Features
+
+* **cli:** Add SSH key upload options to CLI ([#21](https://github.com/higherbros/gh-ssh/issues/21)) ([f1b5081](https://github.com/higherbros/gh-ssh/commit/f1b508136c7909547cdf7101a8be546f29f47b28))
+
 ## [1.2.1](https://github.com/higherbros/gh-ssh/compare/gh-ssh-v1.2.0...gh-ssh-v1.2.1) (2026-02-03)
 
 
