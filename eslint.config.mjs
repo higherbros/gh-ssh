@@ -19,9 +19,14 @@ export default defineConfig(
         'error',
         {
           checksVoidReturn: false,
+          checksConditionals: true,
+          checksSpreads: true,
         },
       ],
-      '@typescript-eslint/ban-ts-comment': 'off',
     },
+  },
+  {
+    files: ['*.mjs', '*.cjs', '*.js', '*.jsx'],
+    extends: [tseslint.configs.disableTypeChecked],
   }
 );

@@ -1,9 +1,15 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { homedir, hostname } from 'node:os';
 import { basename, join } from 'node:path';
 import { CliOptions, KeyType } from './types.js';
 import { copyToClipboard } from '../services/clipboard.js';
+import {
+  addSshKeyViaGh,
+  isGhAuthenticated,
+  isGhInstalled,
+  runGhAuthLogin,
+} from '../services/gh.js';
 import { getGitEmail } from '../services/git.js';
 import {
   addKeyToAgent,
@@ -257,28 +263,115 @@ export const runWorkflow = async (options: CliOptions): Promise<void> => {
 
   await waitForNextStep();
   printStep(6, 'Add the public key to GitHub', emoji.step6);
-  const publicKey = readFileSync(publicKeyPath, 'utf8');
-  const copied = copyToClipboard(publicKey);
-  if (copied) {
-    logSuccess('Public key copied to clipboard.');
-  } else {
-    logWarn('Copy failed. The public key is printed below:');
-    console.log(publicKey.trim());
-  }
+  const manualAddToGitHub = async (): Promise<void> => {
+    const publicKey = readFileSync(publicKeyPath, 'utf8');
+    const copied = copyToClipboard(publicKey);
+    if (copied) {
+      logSuccess('Public key copied to clipboard.');
+    } else {
+      logWarn('Copy failed. The public key is printed below:');
+      console.log(publicKey.trim());
+    }
 
-  logInfo('Open https://github.com/settings/keys to add a new SSH key.');
+    logInfo('Open https://github.com/settings/keys to add a new SSH key.');
 
-  let keyAdded = await promptYesNo(
-    'Did you add the key to your GitHub SSH keys page',
-    false
-  );
-  while (!keyAdded) {
-    logInfo('Paste the key in GitHub, then return here.');
-    await waitForNextStep();
-    keyAdded = await promptYesNo(
-      'Have you added the key to your GitHub SSH keys page',
+    let keyAdded = await promptYesNo(
+      'Did you add the key to your GitHub SSH keys page',
       false
     );
+    while (!keyAdded) {
+      logInfo('Paste the key in GitHub, then return here.');
+      await waitForNextStep();
+      keyAdded = await promptYesNo(
+        'Have you added the key to your GitHub SSH keys page',
+        false
+      );
+    }
+  };
+
+  const ghHostname = 'github.com';
+  const ghAvailable = isGhInstalled();
+
+  if (options.upload && options.skipUpload) {
+    logWarn('Both --upload and --skip-upload were provided. Skipping upload.');
+  }
+
+  const wantsUpload = options.skipUpload
+    ? false
+    : options.upload
+      ? true
+      : ghAvailable
+        ? await promptYesNo('Upload the public key to GitHub via gh now?', true)
+        : false;
+
+  if (!wantsUpload) {
+    await manualAddToGitHub();
+  } else if (!ghAvailable) {
+    const message = 'GitHub CLI (gh) not found. Install gh to auto-upload.';
+    if (options.upload) {
+      logError(message);
+      process.exit(1);
+    }
+
+    logWarn(message);
+    await manualAddToGitHub();
+  } else {
+    const ensureGhAuth = async (): Promise<boolean> => {
+      if (isGhAuthenticated(ghHostname)) {
+        return true;
+      }
+
+      const login = await promptYesNo('Run `gh auth login` now?', true);
+      if (!login) {
+        return false;
+      }
+
+      if (!runGhAuthLogin()) {
+        return false;
+      }
+
+      return isGhAuthenticated(ghHostname);
+    };
+
+    const authed = await ensureGhAuth();
+    if (!authed) {
+      const message =
+        'GitHub CLI is not authenticated. Run `gh auth login` and try again.';
+      if (options.upload) {
+        logError(message);
+        process.exit(1);
+      }
+
+      logWarn(message);
+      await manualAddToGitHub();
+    } else {
+      const defaultTitle = `gh-ssh ${hostname()} (${basename(selectedKeyPath)})`;
+      let title = options.keyTitle?.trim();
+      if (!title) {
+        title = (
+          await promptInput('GitHub SSH key title', defaultTitle)
+        ).trim();
+        if (!title) {
+          title = defaultTitle;
+        }
+      }
+
+      const uploaded = addSshKeyViaGh(publicKeyPath, title);
+      if (uploaded) {
+        logSuccess('SSH key uploaded to GitHub via gh.');
+        logInfo('Manage keys at https://github.com/settings/keys.');
+      } else {
+        const message =
+          'Failed to upload SSH key via gh. You can add it manually instead.';
+        if (options.upload) {
+          logError(message);
+          process.exit(1);
+        }
+
+        logWarn(message);
+        await manualAddToGitHub();
+      }
+    }
   }
 
   await waitForNextStep();

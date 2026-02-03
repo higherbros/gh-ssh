@@ -61,6 +61,20 @@ export const parseArgs = (
       case '--skip-config':
         options.skipConfig = true;
         break;
+      case '--upload':
+        options.upload = true;
+        break;
+      case '--skip-upload':
+        options.skipUpload = true;
+        break;
+      case '--key-title':
+        if (hasValue(argv[i + 1])) {
+          options.keyTitle = argv[i + 1];
+          i += 1;
+        } else {
+          unknown.push(arg);
+        }
+        break;
       default:
         unknown.push(arg);
         break;
