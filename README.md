@@ -74,3 +74,14 @@ Options:
 - `npm run dev -- --help`
 - `npm run dev -- --version`
 - `npm run dev -- --email test@example.com --type ed25519`
+
+## Conventional Commits
+
+We use Conventional Commits to drive automated versioning and changelogs.
+
+Examples:
+
+- `feat: add support for multiple GitHub hosts`
+- `fix: handle missing ssh-agent`
+- `feat!: change default key type` (breaking change)
+- `chore: update dev dependencies` (no release)
