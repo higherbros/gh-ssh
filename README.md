@@ -77,7 +77,7 @@ Options:
 
 ## Conventional Commits
 
-We use Conventional Commits to drive automated versioning and changelogs.
+We use Conventional Commit–style PR titles and squash merges to drive automated versioning and changelogs. Always use a semantic PR title and squash-merge so the PR title becomes the commit message used for releases.
 
 Examples:
 
